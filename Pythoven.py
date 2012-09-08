@@ -142,13 +142,7 @@ def wrap(li, i):
         li - a list
         i  - an index
         return li[i] (if i is out of range, wrap around)"""
-    l = len(li)
-    j = i
-    while j < 0:
-        j += l
-    while j >= l:
-        j -= l
-    return li[j]
+    return li[i%len(li)]
 
 def inScale(note, scale=MAJOR):
     """inScale
