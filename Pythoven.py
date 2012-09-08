@@ -116,7 +116,7 @@ def noteString(note, key='C', padded=False):
         return s.ljust(4)
     return s
 
-def trackString(track, key='C', measure=0):
+def trackString(track, key='C', measure=16):
     """trackString
         track   - a list of notes
         key     - the key to print the track in as a string (i.e. 'F#')
@@ -301,7 +301,7 @@ def rlen(e):
         return l
     return 1
 
-def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav'):
+def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', type='wav'):
     """sing
         sheet       - a music sheet to sing
         key         - the key to sing in
@@ -313,7 +313,6 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav'):
         instruments - a list of instruments to use
         filename    - the name of the wav file to make
         return None, create a wav file from the sheet"""
-    from Waves import initArray, FREQS
     
     print('Calculating track length...',)
     lens = [track[0] for track in sheet]
@@ -324,8 +323,39 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav'):
     # Convert the sheet from absolute times to relative times, and
     # relative notes to MIDI style absolute notes
     replaceprint('Calculating cues...')
+
+    
+    if type=='wav':
+        wavSing(loopedsheet, instruments, key, ticktime, filename)
+    else:
+        midiSing(loopedsheet, instruments, key, ticktime,filename)
+        
+def midiSing(sheet, instruments, key, ticktime, filename):
+    from midiutil.MidiFile import MIDIFile
+    offset = NOTES.index(key) + 60 # Middle C is MIDI note #60    
+    
+    midi=MIDIFile(len(sheet))
+    
+    for t in xrange(0,len(sheet)): 
+        midi.addTrackName(t, 0, "Track %s"%t)
+        midi.addTempo(t, 0, 60000/(ticktime))
+        sheet[t]=sheet[t][1:]+[(sheet[t][0],0)]
+        tracklen=len(sheet[t])
+        for n in xrange(0,tracklen-1):
+            time, note = sheet[t][n]
+            duration = sheet[t][(n+1)%tracklen][0]-time
+            midi.addNote(t,0,offset+note,time,duration,100)#MyMIDI.addNote(track,channel,pitch,time,duration,volume)
+    binfile = open(filename+".mid", 'wb')
+    midi.writeFile(binfile)
+    binfile.close()
+    print filename+".mid written"
+    
+    
+    
+def wavSing(loopedsheet, instruments, key, ticktime, filename):
+    from Waves import initArray, FREQS
     cues = []
-    offset = NOTES.index(key) + 48 # Middle C is MIDI note #48
+    offset = NOTES.index(key) + 48 # Middle C is MIDI note #48    
     for track in loopedsheet:
         cuedtrack = track[1:]
         cuedtrack.append((track[0], 0)) # append tracklength to the end so i+1 still works for last note
@@ -342,17 +372,14 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav'):
         trackwave = initArray()
         instrument = instruments.pop(0)
         for (duration, note) in track:
-            #notewave=
             trackwave.extend(Waves.cachedWaveGen(FREQS[note], duration * ticktime, instrument, vol))
             progress += 1.0
             updateprogress(progress / notecount)
-            #vprint('Generating waves...'+str(100*progress/notecount)+"%")
         waves.append(trackwave)
-    #wtf: waves = [divide(''.join([waveGenII(freq[note],duration*ticktime,instrumentscpy) for (duration, note) in track]), len(cues)) for track in cues]
     replaceprint('Creating mixdown...' + ' ' * 30)
     wave = reduce(Waves.mergeWaves, waves[1:], waves[0])
     replaceprint('Writing file...')
-    Waves.makeWavFile(wave, filename)
+    Waves.makeWavFile(wave, filename+".wav")
     replaceprint('Synth complete!')
 
 # removing this for now: def waveGenII(freq, length, instruments):
@@ -385,11 +412,11 @@ def makeSong(instrument, songname='', makemp3=0):
 
     dirname = 'output'
     mkdirp(dirname)
-    wavname = dirname + "/Pythoven - %s.wav" % songname
+    outname = dirname + "/Pythoven - %s" % songname
     mp3name = dirname + "/mp3/Pythoven - %s.mp3" % songname
     
-    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=wavname)
-    print "WAV output to: \"" + wavname + "\""
+    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=outname, type='wav')
+    print "WAV output to: \"" + outname + "\""
     
     mkdirp(dirname + "/mp3")
     if not makemp3: return
@@ -397,7 +424,7 @@ def makeSong(instrument, songname='', makemp3=0):
     hasffmpeg = subprocess.call(["which", "ffmpeg"], stdout=subprocess.PIPE) == 0
     if hasffmpeg:
         cmdline = ["ffmpeg", "-loglevel", "error"]
-        cmdline += ["-i", wavname, "-ab", "128k"]
+        cmdline += ["-i", outname+".wav", "-ab", "128k"]
         cmdline += ["-metadata", "title=" + songname, "-metadata", "artist=Pythoven 2", "-metadata", "album=" + instrument.capitalize()]
         cmdline += [mp3name]
         mp3success = subprocess.call(cmdline) == 0
@@ -421,7 +448,7 @@ if __name__ == '__main__':
         instrument = sys.argv[1]
         songname = ''
         if len(sys.argv) > 2: songname = sys.argv[2]
-        
+        print 'wav' in sys.argv
     
         starttime = datetime.now()
         makeSong(instrument, songname)
