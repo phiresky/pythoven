@@ -78,7 +78,7 @@ def cachedWaveGen(freq, length, waveType, vol=1):
         waveType - what kind of wave to make. This is a string.
         returns a string representing an 8 bit mono wave"""
     sampleCount = (SAMPLE_RATE * length) // 1000
-    instrument = INSTRUMENTS.get(waveType, DEFAULT_INSTRUMENT)
+    instrument = INSTRUMENTS.get(waveType, INSTRUMENTS.get(DEFAULT_INSTRUMENT))
     cachekey = (instrument, freq, sampleCount)
     if(cachekey not in cache):
         cache[cachekey] = instrument(freq, sampleCount, vol)

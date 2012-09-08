@@ -300,35 +300,6 @@ def rlen(e):
         for i in e: l += rlen(i)
         return l
     return 1
-
-def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', type='wav'):
-    """sing
-        sheet       - a music sheet to sing
-        key         - the key to sing in
-        ticktime    - the time each tick in the
-                        sheet should take, in milliseconds.
-                        The default 125 with 16-tick measures
-                        in 4/4 time will result in
-                        120 beats per minute
-        instruments - a list of instruments to use
-        filename    - the name of the wav file to make
-        return None, create a wav file from the sheet"""
-    
-    print('Calculating track length...',)
-    lens = [track[0] for track in sheet]
-    length = max(lens)
-    replaceprint('\rFile will be approx. %d seconds' % (length * ticktime // 1000))
-    print('Looping tracks...',)
-    loopedsheet = [loop(track, length) for track in sheet]
-    # Convert the sheet from absolute times to relative times, and
-    # relative notes to MIDI style absolute notes
-    replaceprint('Calculating cues...')
-
-    
-    if type=='wav':
-        wavSing(loopedsheet, instruments, key, ticktime, filename)
-    else:
-        midiSing(loopedsheet, instruments, key, ticktime,filename)
         
 def midiSing(sheet, instruments, key, ticktime, filename):
     from midiutil.MidiFile import MIDIFile
@@ -350,9 +321,24 @@ def midiSing(sheet, instruments, key, ticktime, filename):
     binfile.close()
     print filename+".mid written"
     
+def mp3Sing(loopedsheet, instruments, key, ticktime, filename):
+    wavSing(loopedsheet,instruments, key,ticktime,filename, True)
     
+    import subprocess
+    hasffmpeg = subprocess.call(["which", "ffmpeg"], stdout=subprocess.PIPE) == 0
+    if hasffmpeg:
+        cmdline = ["ffmpeg", "-loglevel", "error"]
+        cmdline += ["-i", filename+".wav", "-ab", "128k"]
+        cmdline += ["-metadata", "title=" + filename.split('/')[-1], "-metadata", "artist=Pythoven 2", "-metadata", "album=" + instruments[0].capitalize()]
+        cmdline += [filename+".mp3"]
+        mp3success = subprocess.call(cmdline) == 0
+        if mp3success: print "MP3 output to:\t\"" + filename+ ".mp3\""
+        else: print "MP3 output failed"
+    else:
+        print "ffmpeg not found, no mp3 output"
+    os.remove(filename+".wav") 
     
-def wavSing(loopedsheet, instruments, key, ticktime, filename):
+def wavSing(loopedsheet, instruments, key, ticktime, filename, hidefinal=False):
     from Waves import initArray, FREQS
     cues = []
     offset = NOTES.index(key) + 48 # Middle C is MIDI note #48    
@@ -363,14 +349,13 @@ def wavSing(loopedsheet, instruments, key, ticktime, filename):
     # cues now contains the sheet in a usable format
     startprogress('Generating waves: ')
     waves = []
-    if not instruments:
-        instruments = [Waves.DEFAULT_INSTRUMENT] * len(cues)
     vol = 1.0 / len(cues)
     notecount = rlen(cues) // 2
     progress = 0.0
+    instscpy=instruments[:]
     for track in cues:
         trackwave = initArray()
-        instrument = instruments.pop(0)
+        instrument = instscpy.pop(0)
         for (duration, note) in track:
             trackwave.extend(Waves.cachedWaveGen(FREQS[note], duration * ticktime, instrument, vol))
             progress += 1.0
@@ -380,11 +365,39 @@ def wavSing(loopedsheet, instruments, key, ticktime, filename):
     wave = reduce(Waves.mergeWaves, waves[1:], waves[0])
     replaceprint('Writing file...')
     Waves.makeWavFile(wave, filename+".wav")
-    replaceprint('Synth complete!')
+    replaceprint('Synth complete!\n')
+    if not hidefinal: print "WAV output to: \"" + filename + ".wav\""
 
 # removing this for now: def waveGenII(freq, length, instruments):
+outformats={'mid':midiSing,'wav':wavSing, 'mp3':mp3Sing}
 
-
+def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', type='wav'):
+    """sing
+        sheet       - a music sheet to sing
+        key         - the key to sing in
+        ticktime    - the time each tick in the
+                        sheet should take, in milliseconds.
+                        The default 125 with 16-tick measures
+                        in 4/4 time will result in
+                        120 beats per minute
+        instruments - a list of instruments to use
+        filename    - the name of the wav file to make
+        return None, create a wav file from the sheet"""
+    
+    print 'Calculating track length...',
+    lens = [track[0] for track in sheet]
+    length = max(lens)
+    replaceprint('\rFile will be approx. %d seconds' % (length * ticktime // 1000))
+    print "\nLooping tracks...", 
+    loopedsheet = [loop(track, length) for track in sheet]
+    # Convert the sheet from absolute times to relative times, and
+    # relative notes to MIDI style absolute notes
+    replaceprint('Calculating cues...')
+    if not instruments:
+        instruments = [Waves.DEFAULT_INSTRUMENT] * len(sheet)
+    singer=outformats[type]
+    singer(loopedsheet, instruments, key, ticktime, filename)
+    
 def mkdirp(path):
     try:
         os.makedirs(path)
@@ -393,7 +406,7 @@ def mkdirp(path):
         else: raise
 
 
-def makeSong(instrument, songname='', makemp3=0):
+def makeSong(instrument, songname, type):
     if not songname: songname = randomname()
     print 'Seed and trackname: ' + songname
     # okay so I'm going to try something here:
@@ -413,45 +426,24 @@ def makeSong(instrument, songname='', makemp3=0):
     dirname = 'output'
     mkdirp(dirname)
     outname = dirname + "/Pythoven - %s" % songname
-    mp3name = dirname + "/mp3/Pythoven - %s.mp3" % songname
     
-    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=outname, type='wav')
-    print "WAV output to: \"" + outname + "\""
-    
-    mkdirp(dirname + "/mp3")
-    if not makemp3: return
-    import subprocess
-    hasffmpeg = subprocess.call(["which", "ffmpeg"], stdout=subprocess.PIPE) == 0
-    if hasffmpeg:
-        cmdline = ["ffmpeg", "-loglevel", "error"]
-        cmdline += ["-i", outname+".wav", "-ab", "128k"]
-        cmdline += ["-metadata", "title=" + songname, "-metadata", "artist=Pythoven 2", "-metadata", "album=" + instrument.capitalize()]
-        cmdline += [mp3name]
-        mp3success = subprocess.call(cmdline) == 0
-        if mp3success: print "MP3 output to:\t\"" + mp3name + "\""
-        else: print "MP3 output failed"
-    else:
-        print "ffmpeg not found, no mp3 output"
+    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=outname, type=type)
 
 ############################## MAIN #####################################
 from RandomName import randomname
 from datetime import datetime
+from Waves import INSTRUMENTS
+import argparse
 
 if __name__ == '__main__':
     try:
-        if len(sys.argv) < 2:
-            print 'Usage: Pythoven.py <instrument> [<seed>]'
-            from Waves import INSTRUMENTS
-            print 'Valid instruments are ' + str(', '.join(INSTRUMENTS.keys()))
-            print '<seed> is normally a randomly generated songname'
-            exit()
-        instrument = sys.argv[1]
-        songname = ''
-        if len(sys.argv) > 2: songname = sys.argv[2]
-        print 'wav' in sys.argv
-    
+        parser = argparse.ArgumentParser(description='Generate a song')
+        parser.add_argument('instrument', default='guitar', choices=INSTRUMENTS, help='use this instrument/waveform; will be ignored when using midi (default: %(default)s)')
+        parser.add_argument('-s', '--seed', metavar='name', help='use a special songname/seed (default: random)')
+        parser.add_argument('-f', metavar='wav/mid', default='wav', choices=outformats.keys(), help='output format (default: %(default)s)')
+        args=parser.parse_args()
         starttime = datetime.now()
-        makeSong(instrument, songname)
+        makeSong(args.instrument, args.seed, args.f)
         print "Generation took " + str(round((datetime.now() - starttime).total_seconds(), 3)) + "s"
         
     except KeyboardInterrupt:
