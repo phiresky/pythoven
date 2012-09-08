@@ -20,7 +20,7 @@ import random, os, errno, sys, Waves
 from random import randint      # Used in wrand
 
 def replaceprint(s):
-    sys.stdout.write("\r" + str(s) + " "*10)
+    sys.stdout.write("\r" + str(s) + " "*20)
     sys.stdout.flush()
 
 curprogress = 0 
@@ -304,9 +304,8 @@ def rlen(e):
 def midiSing(sheet, instruments, key, ticktime, filename):
     from midiutil.MidiFile import MIDIFile
     offset = NOTES.index(key) + 60 # Middle C is MIDI note #60    
-    
     midi=MIDIFile(len(sheet))
-    
+    replaceprint('Creating midi...')
     for t in xrange(0,len(sheet)): 
         midi.addTrackName(t, 0, "Track %s"%t)
         midi.addTempo(t, 0, 60000/(ticktime))
@@ -316,14 +315,16 @@ def midiSing(sheet, instruments, key, ticktime, filename):
             time, note = sheet[t][n]
             duration = sheet[t][(n+1)%tracklen][0]-time
             midi.addNote(t,0,offset+note,time,duration,100)#MyMIDI.addNote(track,channel,pitch,time,duration,volume)
+    replaceprint('Writing to file...')
     binfile = open(filename+".mid", 'wb')
     midi.writeFile(binfile)
     binfile.close()
-    print filename+".mid written"
+    replaceprint('Synth complete!')
+    print "\nMID output to: \"" + filename+ ".mid\""
     
 def mp3Sing(loopedsheet, instruments, key, ticktime, filename):
     wavSing(loopedsheet,instruments, key,ticktime,filename, True)
-    
+    replaceprint('Encoding mp3 with ffmpeg...')
     import subprocess
     hasffmpeg = subprocess.call(["which", "ffmpeg"], stdout=subprocess.PIPE) == 0
     if hasffmpeg:
@@ -332,8 +333,9 @@ def mp3Sing(loopedsheet, instruments, key, ticktime, filename):
         cmdline += ["-metadata", "title=" + filename.split('/')[-1], "-metadata", "artist=Pythoven 2", "-metadata", "album=" + instruments[0].capitalize()]
         cmdline += [filename+".mp3"]
         mp3success = subprocess.call(cmdline) == 0
-        if mp3success: print "MP3 output to:\t\"" + filename+ ".mp3\""
-        else: print "MP3 output failed"
+        replaceprint('Synth complete!')
+        if mp3success: print "\nMP3 output to: \"" + filename+ ".mp3\""
+        else: print "\nMP3 output failed"
     else:
         print "ffmpeg not found, no mp3 output"
     os.remove(filename+".wav") 
@@ -365,13 +367,13 @@ def wavSing(loopedsheet, instruments, key, ticktime, filename, hidefinal=False):
     wave = reduce(Waves.mergeWaves, waves[1:], waves[0])
     replaceprint('Writing file...')
     Waves.makeWavFile(wave, filename+".wav")
-    replaceprint('Synth complete!\n')
-    if not hidefinal: print "WAV output to: \"" + filename + ".wav\""
+    replaceprint('Synth complete!')
+    if not hidefinal: print "\nWAV output to: \"" + filename + ".wav\""
 
 # removing this for now: def waveGenII(freq, length, instruments):
 outformats={'mid':midiSing,'wav':wavSing, 'mp3':mp3Sing}
 
-def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', type='wav'):
+def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', fmt='wav'):
     """sing
         sheet       - a music sheet to sing
         key         - the key to sing in
@@ -395,7 +397,7 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', ty
     replaceprint('Calculating cues...')
     if not instruments:
         instruments = [Waves.DEFAULT_INSTRUMENT] * len(sheet)
-    singer=outformats[type]
+    singer=outformats[fmt]
     singer(loopedsheet, instruments, key, ticktime, filename)
     
 def mkdirp(path):
@@ -406,7 +408,7 @@ def mkdirp(path):
         else: raise
 
 
-def makeSong(instrument, songname, type):
+def makeSong(instrument, songname, fmt):
     if not songname: songname = randomname()
     print 'Seed and trackname: ' + songname
     # okay so I'm going to try something here:
@@ -427,7 +429,7 @@ def makeSong(instrument, songname, type):
     mkdirp(dirname)
     outname = dirname + "/Pythoven - %s" % songname
     
-    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=outname, type=type)
+    sing(sheet, key='C', ticktime=125, instruments=[instrument] * len(sheet), filename=outname, fmt=fmt)
 
 ############################## MAIN #####################################
 from RandomName import randomname
