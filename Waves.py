@@ -1,7 +1,10 @@
 #needs patched wave:
 import patchedwavelib as wave
+#import wave
 import random, array, math
-MAX = (1 << 15) - 1 # maximum short value, 32767
+SAMPLE_WIDTH = 2
+MAX = (1 << (SAMPLE_WIDTH*8-1)) - 1 # maximum short value, 32767
+FMT = ['','b','h','','l'] #index=byte count
 SAMPLE_RATE = 44100
 DEFAULT_INSTRUMENT = 'square'
 
@@ -34,7 +37,7 @@ def squareWave(freq, sampleCount, vol):
 
 def guitarWave(freq, sampleCount, vol, damping=0.996):
     n = int(SAMPLE_RATE // freq) # noise loop filter length
-    zn = array.array('h', [int((random.random() * 2 - 1) * MAX * vol) for i in xrange(0, n)]) # white noise (in real array for speed)
+    zn = array.array(FMT[SAMPLE_WIDTH], [int((random.random() * 2 - 1) * MAX * vol) for i in xrange(0, n)]) # white noise (in real array for speed)
     
     values = initArray(sampleCount)
     for i in xrange(0, sampleCount):
@@ -85,9 +88,6 @@ def cachedWaveGen(freq, length, waveType, vol=1):
     return cache[cachekey]
     
 def limit(n):
-    """limit
-        n - a number
-        returns a number"""
     if (n > MAX):
         return MAX
     elif (n < -MAX):
@@ -111,7 +111,7 @@ def mergeWaves(w1, w2):
     #return ''.join(li)
     
 def initArray(size=0):
-    return array.array('h', [0] * size)    
+    return array.array(FMT[SAMPLE_WIDTH], [0] * size)    
 
 def makeWavFile(data, filename):
     """makeWave
@@ -119,8 +119,7 @@ def makeWavFile(data, filename):
         filename - the name of the file to open"""
     f = wave.open(filename, 'w')
     #f.setparams((nchannels, sampwidth, framerate, nframes, comptype, compname))
-    # don't use mono, sound will be cut off at half
-    f.setparams((1, 2, SAMPLE_RATE, 0, 'NONE', 'not compressed'))
+    f.setparams((1, SAMPLE_WIDTH, SAMPLE_RATE, 0, 'NONE', 'not compressed'))
     f.writeframes(data)
     f.close()
     

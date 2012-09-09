@@ -1,4 +1,3 @@
-#copied from lib, but patched (ctrl+f patch)
 """Stuff to parse WAVE files.
 
 Usage.
@@ -472,10 +471,9 @@ class Wave_write:
             WAVE_FORMAT_PCM, self._nchannels, self._framerate,
             self._nchannels * self._framerate * self._sampwidth,
             self._nchannels * self._sampwidth,
-            self._sampwidth*8, 'data'))
+            self._sampwidth * 8, 'data'))
         self._data_length_pos = self._file.tell()
-        #self._file.write(struct.pack('<l', self._datalength)
-        self._file.write(struct.pack('<l', self._datalength*self._sampwidth))#this is the damn patch
+        self._file.write(struct.pack('<l', self._datalength*self._sampwidth))
         self._headerwritten = True
 
     def _patchheader(self):

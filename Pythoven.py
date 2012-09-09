@@ -452,6 +452,3 @@ if __name__ == '__main__':
         print "\nInterrupted by user"
         pass
     
-    
-    #Generation took 1.061s-1.194s (array.array)
-    
