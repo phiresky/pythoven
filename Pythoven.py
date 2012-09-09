@@ -16,6 +16,7 @@
 @author: darkspork,tehdog
 '''
 
+from __future__ import print_function # for python2 compatibility
 import random, os, errno, sys, Waves
 from random import randint      # Used in wrand
 

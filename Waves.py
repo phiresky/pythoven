@@ -1,6 +1,8 @@
 #needs patched wave:
-#import patchedwavelib as wave
-import wave
+try: import patchedwavelibpy3 as wave
+except ImportError:
+    import patchedwavelibpy2 as wave
+#import wave
 import random, array, math
 SAMPLE_WIDTH = 2
 MAX = (1 << (SAMPLE_WIDTH*8-1)) - 1 # maximum short value, 32767
