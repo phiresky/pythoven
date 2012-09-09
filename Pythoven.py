@@ -368,7 +368,7 @@ def wavSing(loopedsheet, instruments, key, ticktime, filename, hidefinal=False):
     replaceprint('Writing file...')
     Waves.makeWavFile(wave, filename+".wav")
     replaceprint('Synth complete!')
-    if not hidefinal: print("\nWAV output to: \"" + filename + ".wav\"")
+    if not hidefinal: print "\nWAV output to: \"" + filename + ".wav\""
 
 # removing this for now: def waveGenII(freq, length, instruments):
 outformats={'mid':midiSing,'wav':wavSing, 'mp3':mp3Sing}
