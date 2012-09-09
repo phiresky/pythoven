@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Pythoven 2 / tehdog
 # Writes music
 
@@ -140,6 +140,9 @@ def trackString(track, key='C', measure=16):
         return "".join(li)
     return ", ".join(["0x%X:%s" % (time, noteString(note, key, False)) for (time, note) in track[1:]])
 
+def vprint(o):
+    print(str(o),end='')
+
 def wrap(li, i):
     """wrap
         li - a list
@@ -165,7 +168,7 @@ def wrand(d):
         d - a wrand dictionary
         returns a random value in d"""
     i = randint(0, d['max'])
-    while i >= 0 and not d.has_key(i):
+    while i >= 0 and i not in d:
         i -= 1
     return d[i]
 
@@ -306,12 +309,12 @@ def midiSing(sheet, instruments, key, ticktime, filename):
     offset = NOTES.index(key) + 60 # Middle C is MIDI note #60    
     midi=MIDIFile(len(sheet))
     replaceprint('Creating midi...')
-    for t in xrange(0,len(sheet)): 
+    for t in range(0,len(sheet)): 
         midi.addTrackName(t, 0, "Track %s"%t)
         midi.addTempo(t, 0, 60000/(ticktime))
         sheet[t]=sheet[t][1:]+[(sheet[t][0],0)]
         tracklen=len(sheet[t])
-        for n in xrange(0,tracklen-1):
+        for n in range(0,tracklen-1):
             time, note = sheet[t][n]
             duration = sheet[t][(n+1)%tracklen][0]-time
             midi.addNote(t,0,offset+note,time,duration,100)#MyMIDI.addNote(track,channel,pitch,time,duration,volume)
@@ -320,7 +323,7 @@ def midiSing(sheet, instruments, key, ticktime, filename):
     midi.writeFile(binfile)
     binfile.close()
     replaceprint('Synth complete!')
-    print "\nMID output to: \"" + filename+ ".mid\""
+    print("\nMID output to: \"" + filename+ ".mid\"")
     
 def mp3Sing(loopedsheet, instruments, key, ticktime, filename):
     wavSing(loopedsheet,instruments, key,ticktime,filename, True)
@@ -334,10 +337,10 @@ def mp3Sing(loopedsheet, instruments, key, ticktime, filename):
         cmdline += [filename+".mp3"]
         mp3success = subprocess.call(cmdline) == 0
         replaceprint('Synth complete!')
-        if mp3success: print "\nMP3 output to: \"" + filename+ ".mp3\""
-        else: print "\nMP3 output failed"
+        if mp3success: print("\nMP3 output to: \"" + filename+ ".mp3\"")
+        else: print("\nMP3 output failed")
     else:
-        print "ffmpeg not found, no mp3 output"
+        print("ffmpeg not found, no mp3 output")
     os.remove(filename+".wav") 
     
 def wavSing(loopedsheet, instruments, key, ticktime, filename, hidefinal=False):
@@ -364,7 +367,7 @@ def wavSing(loopedsheet, instruments, key, ticktime, filename, hidefinal=False):
             updateprogress(progress / notecount)
         waves.append(trackwave)
     replaceprint('Creating mixdown...' + ' ' * 30)
-    wave = reduce(Waves.mergeWaves, waves[1:], waves[0])
+    wave = Waves.mergeWaves(waves)
     replaceprint('Writing file...')
     Waves.makeWavFile(wave, filename+".wav")
     replaceprint('Synth complete!')
@@ -386,11 +389,11 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', fm
         filename    - the name of the wav file to make
         return None, create a wav file from the sheet"""
     
-    print('Calculating track length...',)
+    vprint('Calculating track length...')
     lens = [track[0] for track in sheet]
     length = max(lens)
     replaceprint('\rFile will be approx. %d seconds' % (length * ticktime // 1000))
-    print "\nLooping tracks...", 
+    vprint("\nLooping tracks...") 
     loopedsheet = [loop(track, length) for track in sheet]
     # Convert the sheet from absolute times to relative times, and
     # relative notes to MIDI style absolute notes
@@ -410,7 +413,7 @@ def mkdirp(path):
 
 def makeSong(instrument, songname, fmt):
     if not songname: songname = randomname()
-    print 'Seed and trackname: ' + songname
+    print('Seed and trackname: ' + songname)
     # okay so I'm going to try something here:
     # first I will generate a "theme" with the length of two measures
     theme = compose(length=2, seed=songname)
@@ -446,9 +449,9 @@ if __name__ == '__main__':
         args=parser.parse_args()
         starttime = datetime.now()
         makeSong(args.instrument, args.seed, args.f)
-        print "Generation took " + str(round((datetime.now() - starttime).total_seconds(), 3)) + "s"
+        print("Generation took " + str(round((datetime.now() - starttime).total_seconds(), 3)) + "s")
         
     except KeyboardInterrupt:
-        print "\nInterrupted by user"
+        print("\nInterrupted by user")
         pass
     

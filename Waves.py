@@ -1,6 +1,6 @@
 #needs patched wave:
-import patchedwavelib as wave
-#import wave
+#import patchedwavelib as wave
+import wave
 import random, array, math
 SAMPLE_WIDTH = 2
 MAX = (1 << (SAMPLE_WIDTH*8-1)) - 1 # maximum short value, 32767
@@ -31,16 +31,16 @@ def squareWave(freq, sampleCount, vol):
     innermult = 2 * freq / SAMPLE_RATE
     outermult = int(MAX * vol)
     values = initArray(sampleCount)
-    for i in xrange(0, sampleCount):
+    for i in range(0, sampleCount):
         values[i] = (int(i * innermult) % 2 * 2 - 1) * outermult    
     return values
 
 def guitarWave(freq, sampleCount, vol, damping=0.996):
     n = int(SAMPLE_RATE // freq) # noise loop filter length
-    zn = array.array(FMT[SAMPLE_WIDTH], [int((random.random() * 2 - 1) * MAX * vol) for i in xrange(0, n)]) # white noise (in real array for speed)
+    zn = array.array(FMT[SAMPLE_WIDTH], [int((random.random() * 2 - 1) * MAX * vol) for i in range(0, n)]) # white noise (in real array for speed)
     
     values = initArray(sampleCount)
-    for i in xrange(0, sampleCount):
+    for i in range(0, sampleCount):
         values[i] = zn[i % n] # read sample from current noise
         zn[i % n] = int((
                      zn[ i % n] * 2 + 
@@ -61,15 +61,15 @@ def sineWave(freq, sampleCount, vol):
     innermult = 2 * math.pi * 20 / calclength
     outermult = MAX * vol
     values = initArray(sampleCount)
-    for i in xrange(0, calclength):
+    for i in range(0, calclength):
         values[i] = int(math.sin(i * innermult) * outermult)
-    for i in xrange(calclength, sampleCount):
+    for i in range(calclength, sampleCount):
         values[i] = values[i % calclength]
     
     smoothLength = min(sampleCount // 2, int(SAMPLE_RATE * 0.005))#smooth five seconds at the wave ends to remove cracking
-    for i in xrange(0, smoothLength):
-        values[i] = values[i] * i / smoothLength;
-        values[-1 - i] = values[-1 - i] * i / smoothLength;
+    for i in range(0, smoothLength):
+        values[i] = int(values[i] * i / smoothLength)
+        values[-1 - i] = int(values[-1 - i] * i / smoothLength)
     return values
 
 INSTRUMENTS = {'sine':sineWave, 'square':squareWave, 'guitar':guitarWave}
@@ -94,21 +94,15 @@ def limit(n):
         return -MAX
     return n
 
-def mergeWaves(w1, w2):
-    """mergeWaves - merge two waves together
-        w1 - a wave
-        w2 - a wave
-        returns a new wave that is both combined"""
-    l = max(len(w1), len(w2))
-    w1.extend([0] * (l - len(w1))) # make sure they are long enough
-    w2.extend([0] * (l - len(w2)))
-    
+def mergeWaves(waves):
+    """mergeWaves - merge waves together
+        returns a new wave that is all combined"""
+    l = max([len(wave) for wave in waves])
     outwave = initArray(l)
-    for i in xrange(0, l):
-        outwave[i] = limit(w1[i] + w2[i]) # what todo: when one list is longer?
+    for wave in waves:
+        for i in range(0,len(wave)):
+            outwave[i]=outwave[i]+wave[i]
     return outwave
-    #li=[schr(ord(a)+ord(b)-0x80) for (a,b) in izip_longest(wave1,wave2,fillvalue=0)]
-    #return ''.join(li)
     
 def initArray(size=0):
     return array.array(FMT[SAMPLE_WIDTH], [0] * size)    
