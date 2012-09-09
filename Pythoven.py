@@ -386,7 +386,7 @@ def sing(sheet, key='C', ticktime=125, instruments=(), filename='./test.wav', fm
         filename    - the name of the wav file to make
         return None, create a wav file from the sheet"""
     
-    print 'Calculating track length...',
+    print('Calculating track length...',)
     lens = [track[0] for track in sheet]
     length = max(lens)
     replaceprint('\rFile will be approx. %d seconds' % (length * ticktime // 1000))
