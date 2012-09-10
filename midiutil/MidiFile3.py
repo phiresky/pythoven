@@ -698,7 +698,7 @@ class MIDIFile:
         self.numTracks = numTracks
         self.closed = False
         
-        for i in range(0,numTracks):
+        for i in range(0,numTracks): #@UnusedVariable
             self.tracks.append(MIDITrack(removeDuplicates,  deinterleave))
             
             
@@ -947,33 +947,33 @@ class MIDIFile:
         return origin
             
 def writeVarLength(i):
-    '''Accept an input, and write a MIDI-compatible variable length stream
+    '''Accept an i, and write a MIDI-compatible variable length stream
     
     The MIDI format is a little strange, and makes use of so-called variable
     length quantities. These quantities are a stream of bytes. If the most
     significant bit is 1, then more bytes follow. If it is zero, then the
     byte in question is the last in the stream
     '''
-    input = int(i)
+    i = int(i)
     output = [0,0,0,0]
-    reversed = [0,0,0,0]
+    reverse = [0,0,0,0]
     count = 0
-    result = input & 0x7F
+    result = i & 0x7F
     output[count] = result
     count = count + 1
-    input = input >> 7
-    while input > 0:
-        result = input & 0x7F 
+    i = i >> 7
+    while i > 0:
+        result = i & 0x7F 
         result = result | 0x80
         output[count] = result
         count = count + 1
-        input = input >> 7  
+        i = i >> 7  
 
-    reversed[0] = output[3]
-    reversed[1] = output[2]
-    reversed[2] = output[1]
-    reversed[3] = output[0]
-    return reversed[4-count:4]
+    reverse[0] = output[3]
+    reverse[1] = output[2]
+    reverse[2] = output[1]
+    reverse[3] = output[0]
+    return reverse[4-count:4]
 
 def frequencyTransform(freq):
     '''Returns a three-byte transform of a frequencyTransform
