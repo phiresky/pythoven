@@ -15,10 +15,16 @@
 '''
 @author: darkspork,tehdog
 '''
-
 from __future__ import print_function # for python2 compatibility
+
+try: from midiutil.MidiFile3 import MIDIFile
+except ImportError:
+    from midiutil.MidiFile import MIDIFile
+    
 import random, os, errno, sys, Waves
 from random import randint      # Used in wrand
+
+SONGLEN=20
 
 def replaceprint(s):
     sys.stdout.write("\r" + str(s) + " "*20)
@@ -306,7 +312,6 @@ def rlen(e):
     return 1
         
 def midiSing(sheet, instruments, key, ticktime, filename):
-    from midiutil.MidiFile import MIDIFile
     offset = NOTES.index(key) + 60 # Middle C is MIDI note #60    
     midi=MIDIFile(len(sheet))
     replaceprint('Creating midi...')
@@ -421,12 +426,12 @@ def makeSong(instrument, songname, fmt):
     # and put it in the sheet
     sheet = [theme]
     # this theme will now get a few minor variations, but be repeated through 10 measures:
-    counterpoint(sheet, dissonance=1, beat=16, length=10, seed=songname + "bass")
+    counterpoint(sheet, dissonance=1, beat=16, length=SONGLEN//2, seed=songname + "bass")
     # which will be our bass track
     basstrack = sheet[1]
     shift(basstrack, -12)
     sheet.pop(0)
-    counterpoint(sheet, beat=2, dissonance=3, length=20, seed=songname + "melody")
+    counterpoint(sheet, beat=2, dissonance=3, length=SONGLEN, seed=songname + "melody")
     # todo: more stuff here
 
     dirname = 'output'
